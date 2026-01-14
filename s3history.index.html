@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中三級歷史科上考溫習</title>
+    <style>
+        /* 網頁顯示樣式 */
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .container { background-color: white; width: 100%; max-width: 850px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 10px; font-size: 1.6em; }
+        .status-bar { display: flex; justify-content: space-between; margin-bottom: 15px; color: #7f8c8d; font-weight: bold; }
+        .question-box { min-height: 250px; }
+        .question-text { font-size: 1.2em; margin-bottom: 20px; color: #34495e; line-height: 1.4; }
+        .options { list-style: none; padding: 0; }
+        .options li { background: #fdfdfd; border: 2px solid #ecf0f1; border-radius: 10px; padding: 12px 15px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; line-height: 1.4; }
+        .options li.correct { background-color: #2ecc71 !important; color: white; border-color: #27ae60; }
+        .options li.wrong { background-color: #e74c3c !important; color: white; border-color: #c0392b; }
+        .options li.locked { cursor: default; }
+        #next-btn { background-color: #3498db; color: white; border: none; padding: 12px 35px; border-radius: 5px; cursor: pointer; font-size: 1.1em; display: none; font-weight: bold; margin: 10px auto; }
+        .result-screen { display: none; text-align: center; }
+        .score-text { font-size: 2.2em; margin: 20px 0; color: #2c3e50; font-weight: bold; }
+        .btn-group { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+        .action-btn { width: 100%; max-width: 300px; padding: 14px; border: none; border-radius: 5px; cursor: pointer; font-size: 1.1em; color: white; transition: 0.3s; font-weight: bold; }
+        .btn-retry-wrong { background-color: #f39c12; }
+        .btn-download { background-color: #27ae60; }
+        .btn-restart { background-color: #3498db; }
+        .footer-note { margin-top: 30px; color: #e74c3c; font-weight: bold; font-size: 1em; border-top: 1px dashed #ccc; padding-top: 15px; }
+        
+        /* PDF 輸出樣式 */
+        @media print {
+            .no-print { display: none !important; }
+            #pdf-area { display: block !important; }
+            body { background-color: white; padding: 0; }
+            .page-break { page-break-before: always; border-top: 2px solid #333; margin-top: 20px; padding-top: 20px; }
+            .pdf-item { margin-bottom: 12px; font-size: 11pt; line-height: 1.6; }
+            .ans-highlight { color: #e74c3c !important; text-decoration: underline; font-weight: bold; }
+            .blank-space { display: inline-block; width: 120px; border-bottom: 1px solid black; }
+        }
+        #pdf-area { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container no-print">
+    <h1>中三級歷史科上考溫習</h1>
+    <div id="quiz-screen">
+        <div class="status-bar">
+            <span id="progress-text">題目 1 / 32</span>
+            <span id="score-count">得分: 0</span>
+        </div>
+        <div class="question-box">
+            <div class="question-text" id="q-text"></div>
+            <ul class="options" id="opt-list"></ul>
+        </div>
+        <div style="text-align: center;"><button id="next-btn" onclick="goNext()">下一題</button></div>
+    </div>
+
+    <div id="result-screen" class="result-screen">
+        <h2>溫習完成！</h2>
+        <div class="score-text" id="final-score">0 / 0</div>
+        <div class="btn-group">
+            <button class="action-btn btn-retry-wrong" id="retry-wrong-btn" onclick="startRetryWrong()">1. 重做錯題</button>
+            <button class="action-btn btn-download" onclick="window.print()">2. 下載溫習總結 (PDF)</button>
+            <button class="action-btn btn-restart" onclick="startAll()">3. 重做全部題目</button>
+        </div>
+        <div class="footer-note">記得要溫埋溫習紙、工作紙、測考卷和歷史書！</div>
+    </div>
+</div>
+
+<div id="pdf-area">
+    <h2 style="text-align: center;">中三級歷史科上考溫習總結 (第一部分：自我檢測填充)</h2>
+    <div id="pdf-blanks"></div>
+    
+    <div class="page-break"></div>
+    
+    <h2 style="text-align: center;">中三級歷史科上考溫習總結 (第二部分：答案對照表)</h2>
+    <div id="pdf-answers"></div>
+    <p style="color: red; font-weight: bold; margin-top: 30px; border-top: 1px solid black; padding-top: 10px;">提醒：記得要溫埋溫習紙、工作紙、測考卷和歷史書！</p>
+</div>
+
+<script>
+    // 定義總結內容，[K] 代表關鍵字（會變為填充位）
+    const quizData = [
+        { q: "1914年6月28日，哪一位奧匈帝國的皇儲在塞拉耶佛視察時被刺殺，成為一戰導火線？", a: 1, o: ["威廉二世", "斐迪南大公", "尼古拉二世", "喬治五世"], s: "1914年6月28日，奧匈皇儲 [K]斐迪南大公[/K] 在塞拉耶佛被刺殺，成為一戰導火線。" },
+        { q: "塞拉耶佛暗殺事件後，奧匈帝國在德國支持下，向哪國發出最後通牒，導致大戰爆發？", a: 2, o: ["俄國", "法國", "塞爾維亞", "英國"], s: "塞拉耶佛事件後，奧匈向 [K]塞爾維亞[/K] 發出最後通牒並宣戰。" },
+        { q: "一戰初期，德國為了避免東西兩線作戰，採納了哪項軍事計劃，意圖先迅速擊敗法國？", a: 0, o: ["施里芬計劃", "巴巴羅薩作戰", "曼斯坦計劃", "霸王行動"], s: "德國在一戰初期實施 [K]施里芬計劃[/K] ，違反中立條約進攻 [K]比利時[/K] 以繞過法國防線，導致英國參戰。" },
+        { q: "德國在一戰中為了繞過法國防線，違反中立條約進攻了哪國，導致英國參戰？", a: 2, o: ["荷蘭", "瑞士", "比利時", "丹麥"], s: "" },
+        { q: "一戰期間，德國實施哪種海軍戰略，最終導致美國參戰？", a: 1, o: ["閃電戰", "無限制潛艇戰", "壕溝戰", "門戶開放政策"], s: "德國實施 [K]無限制潛艇戰[/K] 擊沉中立國商船，最終導致美國參戰。" },
+        { q: "20世紀初，哪一地區因種族矛盾和領土糾紛而被稱為「歐洲火藥庫」？", a: 1, o: ["伊比利亞半島", "巴爾幹半島", "斯堪地那維亞半島", "亞平寧半島"], s: "[K]巴爾幹半島[/K] 因列強干預與種族矛盾，被稱為「歐洲火藥庫」。" },
+        { q: "一戰期間，雙方在西線戰場長期陷入僵持狀態，士兵主要在什麼防禦工事中作戰？", a: 1, o: ["城堡", "壕溝（戰壕）", "地下要塞", "摩天大樓"], s: "一戰西線以 [K]壕溝戰[/K] 為特徵，導致戰事長期陷於僵持。" },
+        { q: "【國家與主義配對】請選出正確的組合：", a: 2, o: ["(1)德國-泛斯拉夫 (2)法國-復仇 (3)俄國-泛日耳曼", "(1)德國-復仇 (2)法國-泛日耳曼 (3)俄國-泛斯拉夫", "(1)德國-泛日耳曼 (2)法國-復仇 (3)俄國-泛斯拉夫", "以上皆非"], s: "德國推行 [K]泛日耳曼主義[/K] ，法國抱持 [K]復仇主義[/K] ，俄國則支持 [K]泛斯拉夫主義[/K] 。" },
+        { q: "1929年10月，哪一個市場的崩潰標誌著「經濟大衰退」的開始？", a: 0, o: ["紐約華爾街股市", "倫敦交易所", "柏林銀行", "東京貿易市場"], s: "1929年10月， [K]紐約華爾街股市[/K] 的崩潰標誌著「經濟大衰退」的開始。" },
+        { q: "一戰後，美國總統威爾遜倡導哪項原則，主張各民族有權建立國家，使歐洲出現不少新國家？", a: 1, o: ["三民主義", "民族自決", "門戶開放", "孤立主義"], s: "一戰後，威爾遜倡導 [K]民族自決[/K] ，主張各民族有權建立國家，使歐洲出現不少新國家。" },
+        { q: "1930年代初，哪兩個國家的政府因無力解決經濟困境，導致極權主義興起？", a: 1, o: ["美國與英國", "德國與日本", "法國與蘇聯", "英國與法國"], s: "1930年代初， [K]德國與日本[/K] 因無力解決經濟困境，導致極權主義興起。" },
+        { q: "德國人普遍認為哪一條條約是「可恥的條約」，並決心要向戰勝國復仇？", a: 0, o: ["《凡爾賽條約》", "《慕尼黑協定》", "《開羅宣言》", "《波茨坦公告》"], s: "德國人普遍認為 [K]《凡爾賽條約》[/K] 是「可恥的條約」，並決心復仇。" },
+        { q: "二戰前，美國奉行哪種政策，盡量避免介入歐洲事務，以免再次捲入戰爭？", a: 1, o: ["門羅主義", "孤立主義", "殖民主義", "綏靖政策"], s: "二戰前，美國奉行 [K]孤立主義[/K] ，盡量避免介入歐洲事務。" },
+        { q: "日本在哪一事件後佔領了中國瀋陽，並在東北建立「偽滿洲國」？", a: 2, o: ["七七事變", "蘆溝橋事變", "九一八事變", "一二八事變"], s: "日本在 [K]九一八事變[/K] 後佔領瀋陽，並在東北建立「偽滿洲國」。" },
+        { q: "1935至1936年，意大利在墨索里尼領導下征服了非洲哪一個國家？", a: 0, o: ["阿比西尼亞（埃塞俄比亞）", "阿爾巴尼亞", "埃及", "利比亞"], s: "1935至1936年，意大利征服了非洲的 [K]阿比西尼亞[/K] （埃塞俄比亞）。" },
+        { q: "英、法兩國為了息事寧人，對德、意侵略行為作出讓步的政策稱為：", a: 0, o: ["單方讓步", "遏制政策", "門戶開放政策", "中立政策"], s: "英、法對德、意侵略作出讓步的政策稱為 [K]綏靖政策[/K] 。" },
+        { q: "1938年慕尼黑會議中，英法強迫哪國割讓蘇台德區給德國？", a: 2, o: ["波蘭", "奧地利", "捷克斯洛伐克", "匈牙利"], s: "1938年慕尼黑會議中，英法強迫 [K]捷克斯洛伐克[/K] 割讓蘇台德區給德國。" },
+        { q: "1939年8月，德國與哪國簽訂秘密協定，協議瓜分波蘭？", a: 2, o: ["英國", "美國", "蘇聯", "意大利"], s: "1939年8月，德國與蘇聯簽訂 [K]《德蘇互不侵犯條約》[/K] 協議瓜分波蘭。" },
+        { q: "1939年9月1日，德國對哪國發動攻擊，導致二戰在歐洲正式爆發？", a: 1, o: ["法國", "波蘭", "捷克", "蘇聯"], s: "1939年9月1日，德國攻擊 [K]波蘭[/K] ，導致二戰在歐洲正式爆發。" },
+        { q: "1945年8月，美國在日本哪兩個城市投下原子彈，最終迫使日本投降？", a: 1, o: ["東京、大阪", "廣島、長崎", "京都、神戶", "橫濱、名古屋"], s: "1945年8月，美國在 [K]廣島、長崎[/K] 投下原子彈，迫使日本無條件投降。" },
+        { q: "1942年，納粹德國系統性地將猶太人送往毒氣室處決，這項滅絕計劃稱為：", a: 1, o: ["道茲計劃", "最後解決方案", "馬歇爾計劃", "四年計劃"], s: "1942年，納粹德國系統性地將猶太人送往毒氣室處決，這項滅絕計劃稱為 [K]最後解決方案[/K] 。" },
+        { q: "根據 1948 年聯合國公約，以下哪項屬於「種族滅絕」行為？", a: 1, o: ["正常戰爭傷亡", "強迫轉移某團體兒童至另一團體", "貿易制裁", "合法刑事審判"], s: "根據聯合國公約，「 [K]強迫轉移某團體兒童至另一團體[/K] 」屬於種族滅絕行為。" },
+        { q: "納粹德國認為哪一個民族是「最優秀的人種」？", a: 0, o: ["雅利安人", "猶太人", "斯拉夫人", "波蘭人"], s: "納粹德國認為 [K]雅利安人[/K] 是「最優秀的人種」，具有領導世界的權利。" },
+        { q: "1935年納粹德國頒布了哪條法令，正式剝奪猶太人的公民權？", a: 0, o: ["《紐倫堡法令》", "《凡爾賽條約》", "《慕尼黑協定》", "《聯合國憲章》"], s: "1935年 [K]《紐倫堡法令》[/K] 正式剝奪了猶太人的公民權。" },
+        { q: "1938年11月9日納粹襲擊猶太人商店及會堂的事件稱為：", a: 1, o: ["長刀之夜", "水晶之夜", "華沙起義", "紐倫堡審判"], s: "1938年11月9日納粹襲擊猶太人商店及會堂的事件稱為 [K]水晶之夜[/K] 。" },
+        { q: "關於戰後德國的反省，以下哪項敘述「錯誤」？", a: 2, o: ["總理布蘭特曾下跪", "賠償倖存者", "拆除所有集中營遺址以掩蓋歷史", "歷史教育包含納粹罪行"], s: "德國戰後並未拆除所有 [K]集中營遺址[/K] ，而是保留部分作為紀念博物館教育後代。" },
+        { q: "「冷戰」一詞主要形容二戰後哪兩大陣營之間的對抗？", a: 0, o: ["美國與蘇聯", "中國與美國", "英國與法國", "德國與日本"], s: "「冷戰」形容二戰後以 [K]美國和蘇聯[/K] 為首的兩大陣營對抗。" },
+        { q: "冷戰中「冷」字的含意是什麼？", a: 2, o: ["關係友好", "極地作戰", "雙方沒有爆發直接的大規模熱戰", "停止一切外交"], s: "冷戰的「冷」指雙方沒有爆發直接的大規模 [K]軍事熱戰[/K] 。" },
+        { q: "邱吉爾在1946年演說中，用哪一個詞形容東歐國家被蘇聯控制的局勢？", a: 0, o: ["鐵幕", "柏林圍牆", "防火牆", "壕溝"], s: "邱吉爾於1946年用 [K]鐵幕[/K] 形容蘇聯對東歐國家的控制。" },
+        { q: "冷戰期間，美國與蘇聯在意識形態上的根本分歧為何？", a: 0, o: ["資本主義與共產主義", "宗教與無神論", "君主制與共和制", "殖民主義"], s: "冷戰美蘇的分歧在於 [K]資本主義與共產主義[/K] 的意識形態對抗。" },
+        { q: "冷戰的特徵之一是「軍備競賽」，這主要體現在哪種武器的堆積？", a: 2, o: ["坦克", "航空母艦", "核武器", "化學武器"], s: "冷戰軍備競賽主要體現在 [K]核武器[/K] 的研發與堆積。" },
+        { q: "以下哪一項「不是」冷戰期間美蘇對抗的方式？", a: 1, o: ["經濟援助盟友", "爆發兩國之間的全面直接戰爭", "間諜活動", "代理人戰爭"], s: "冷戰期間美蘇兩國並未爆發 [K]全面的直接戰爭[/K] 。" }
+    ];
+
+    let currentQuestions = [], currentIndex = 0, score = 0, wrongIndices = [], isAnswered = false;
+
+    function startAll() { currentQuestions = [...quizData]; resetQuiz(); }
+    function startRetryWrong() { currentQuestions = wrongIndices.map(i => quizData[i]); resetQuiz(); }
+    
+    function resetQuiz() {
+        currentIndex = 0; score = 0; wrongIndices = [];
+        document.getElementById('quiz-screen').style.display = 'block';
+        document.getElementById('result-screen').style.display = 'none';
+        updatePDF(); updateScoreDisplay(); showQuestion();
+    }
+
+    function updatePDF() {
+        const blanksArea = document.getElementById('pdf-blanks');
+        const answersArea = document.getElementById('pdf-answers');
+        let blanksHTML = '';
+        let answersHTML = '';
+        let count = 1;
+
+        quizData.forEach((item) => {
+            if (item.s === "") return;
+            
+            // 處理填充版 (取代 [K]...[/K] 為 底線)
+            let bText = item.s.replace(/\[K\].*?\[\/K\]/g, "_____________");
+            blanksHTML += `<div class="pdf-item"><b>(${count})</b> ${bText}</div>`;
+            
+            // 處理答案版 (取代 [K]...[/K] 為 紅色底線)
+            let aText = item.s.replace(/\[K\]/g, '<span class="ans-highlight">').replace(/\[\/K\]/g, '</span>');
+            answersHTML += `<div class="pdf-item"><b>(${count})</b> ${aText}</div>`;
+            
+            count++;
+        });
+
+        blanksArea.innerHTML = blanksHTML;
+        answersArea.innerHTML = answersHTML;
+    }
+
+    function showQuestion() {
+        isAnswered = false; const q = currentQuestions[currentIndex];
+        document.getElementById('progress-text').innerText = `題目 ${currentIndex + 1} / ${currentQuestions.length}`;
+        document.getElementById('q-text').innerText = q.q;
+        document.getElementById('next-btn').style.display = 'none';
+        const list = document.getElementById('opt-list'); list.innerHTML = '';
+        q.o.forEach((opt, i) => {
+            const li = document.createElement('li'); li.innerText = opt;
+            li.onclick = () => {
+                if (isAnswered) return; isAnswered = true;
+                const options = list.querySelectorAll('li');
+                options.forEach(l => l.classList.add('locked'));
+                if (i === q.a) { li.classList.add('correct'); score++; }
+                else { 
+                    li.classList.add('wrong'); options[q.a].classList.add('correct'); 
+                    const origIdx = quizData.findIndex(d => d.q === q.q);
+                    if(!wrongIndices.includes(origIdx)) wrongIndices.push(origIdx);
+                }
+                updateScoreDisplay(); document.getElementById('next-btn').style.display = 'block';
+            };
+            list.appendChild(li);
+        });
+    }
+
+    function goNext() {
+        currentIndex++; if (currentIndex < currentQuestions.length) showQuestion();
+        else {
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            document.getElementById('final-score').innerText = `${score} / ${currentQuestions.length}`;
+            document.getElementById('retry-wrong-btn').style.display = wrongIndices.length > 0 ? 'block' : 'none';
+        }
+    }
+    function updateScoreDisplay() { document.getElementById('score-count').innerText = `得分: ${score}`; }
+    startAll();
+</script>
+</body>
+</html>
